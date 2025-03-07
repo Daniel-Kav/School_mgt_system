@@ -33,6 +33,10 @@ model Student {
   attendances Attendance[]
   results     Result[]
   birthday    DateTime
+
+  @@index([name])
+  @@index([classId])
+  @@index([gradeId])
 }
 
 model Teacher {
