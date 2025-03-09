@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  deleteAnnouncement,
   deleteClass,
   deleteExam,
   deleteStudent,
@@ -21,6 +22,7 @@ const deleteActionMap = {
   teacher: deleteTeacher,
   student: deleteStudent,
   exam: deleteExam,
+  announcement: deleteAnnouncement,
 // TODO: OTHER DELETE ACTIONS
   parent: deleteSubject,
   lesson: deleteSubject,
@@ -28,30 +30,32 @@ const deleteActionMap = {
   result: deleteSubject,
   attendance: deleteSubject,
   event: deleteSubject,
-  announcement: deleteSubject,
 };
 
-// USE LAZY LOADING
+// Properly define the dynamic imports with default export
+const TeacherForm = dynamic(() => import("./forms/TeacherForm").then(mod => mod.default), {
+  loading: () => <div className="p-4">Loading teacher form...</div>,
+});
 
-// import TeacherForm from "./forms/TeacherForm";
-// import StudentForm from "./forms/StudentForm";
+const StudentForm = dynamic(() => import("./forms/StudentForm").then(mod => mod.default), {
+  loading: () => <div className="p-4">Loading student form...</div>,
+});
 
-const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
-  loading: () => <h1>Loading...</h1>,
+const SubjectForm = dynamic(() => import("./forms/SubjectForm").then(mod => mod.default), {
+  loading: () => <div className="p-4">Loading subject form...</div>,
 });
-const StudentForm = dynamic(() => import("./forms/StudentForm"), {
-  loading: () => <h1>Loading...</h1>,
+
+const ClassForm = dynamic(() => import("./forms/ClassForm").then(mod => mod.default), {
+  loading: () => <div className="p-4">Loading class form...</div>,
 });
-const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
-  loading: () => <h1>Loading...</h1>,
+
+const ExamForm = dynamic(() => import("./forms/ExamForm").then(mod => mod.default), {
+  loading: () => <div className="p-4">Loading exam form...</div>,
 });
-const ClassForm = dynamic(() => import("./forms/ClassForm"), {
-  loading: () => <h1>Loading...</h1>,
+
+const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm").then(mod => mod.default), {
+  loading: () => <div className="p-4">Loading announcement form...</div>,
 });
-const ExamForm = dynamic(() => import("./forms/ExamForm"), {
-  loading: () => <h1>Loading...</h1>,
-});
-// TODO: OTHER FORMS
 
 const forms: {
   [key: string]: (
@@ -100,7 +104,14 @@ const forms: {
       setOpen={setOpen}
       relatedData={relatedData}
     />
-    // TODO OTHER LIST ITEMS
+  ),
+  announcement: (setOpen, type, data, relatedData) => (
+    <AnnouncementForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
   ),
 };
 
