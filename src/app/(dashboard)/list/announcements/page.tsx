@@ -7,7 +7,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Announcement, Class, Prisma } from "@prisma/client";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
-
+import { getClasses } from "@/lib/data";
 
 type AnnouncementList = Announcement & { class: Class };
 const AnnouncementListPage = async ({
@@ -115,6 +115,8 @@ const AnnouncementListPage = async ({
     prisma.announcement.count({ where: query }),
   ]);
 
+  const classes = await getClasses();
+
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -132,7 +134,11 @@ const AnnouncementListPage = async ({
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {role === "admin" && (
-              <FormContainer table="announcement" type="create" />
+              <FormContainer
+                table="announcement"
+                type="create"
+                relatedData={{ classes }}
+              />
             )}
           </div>
         </div>
