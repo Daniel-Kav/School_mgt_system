@@ -2,16 +2,49 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Prisma, Student } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
-
 import { auth } from "@clerk/nextjs/server";
+import { Suspense } from "react";
+import Loading from "./loading";
 
-type StudentList = Student & { class: Class };
+type StudentList = Pick<Student, 'id' | 'name' | 'username' | 'phone' | 'address' | 'img'> & { 
+  class: Pick<Class, 'id' | 'name'> 
+};
+
+// Separate data fetching logic
+async function getStudents(page: number, query: Prisma.StudentWhereInput) {
+  const [data, count] = await prisma.$transaction([
+    prisma.student.findMany({
+      where: query,
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        phone: true,
+        address: true,
+        img: true,
+        class: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      take: ITEM_PER_PAGE,
+      skip: ITEM_PER_PAGE * (page - 1),
+      orderBy: {
+        name: 'asc',
+      },
+    }),
+    prisma.student.count({ where: query }),
+  ]);
+
+  return { data, count };
+}
 
 const StudentListPage = async ({
   searchParams,
@@ -68,6 +101,7 @@ const StudentListPage = async ({
           width={40}
           height={40}
           className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
+          priority={true}
         />
         <div className="flex flex-col">
           <h3 className="font-semibold">{item.name}</h3>
@@ -80,15 +114,12 @@ const StudentListPage = async ({
       <td className="hidden md:table-cell">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
-          <Link href={`/list/students/${item.id}`}>
+          <Link href={`/list/students/${item.id}`} prefetch={true}>
             <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaSky">
               <Image src="/view.png" alt="" width={16} height={16} />
             </button>
           </Link>
           {role === "admin" && (
-            // <button className="w-7 h-7 flex items-center justify-center rounded-full bg-lamaPurple">
-            //   <Image src="/delete.png" alt="" width={16} height={16} />
-            // </button>
             <FormContainer table="student" type="delete" id={item.id} />
           )}
         </div>
@@ -97,11 +128,7 @@ const StudentListPage = async ({
   );
 
   const { page, ...queryParams } = searchParams;
-
   const p = page ? parseInt(page) : 1;
-
-  // URL PARAMS CONDITION
-
   const query: Prisma.StudentWhereInput = {};
 
   if (queryParams) {
@@ -127,46 +154,35 @@ const StudentListPage = async ({
     }
   }
 
-  const [data, count] = await prisma.$transaction([
-    prisma.student.findMany({
-      where: query,
-      include: {
-        class: true,
-      },
-      take: ITEM_PER_PAGE,
-      skip: ITEM_PER_PAGE * (p - 1),
-    }),
-    prisma.student.count({ where: query }),
-  ]);
+  const { data, count } = await getStudents(p, query);
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      {/* TOP */}
-      <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">All Students</h1>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-4 self-end">
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/filter.png" alt="" width={14} height={14} />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              <Image src="/sort.png" alt="" width={14} height={14} />
-            </button>
-            {role === "admin" && (
-              // <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
-              //   <Image src="/plus.png" alt="" width={14} height={14} />
-              // </button>
-              <FormContainer table="student" type="create" />
-            )}
+    <Suspense fallback={<Loading />}>
+      <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+        {/* TOP */}
+        <div className="flex items-center justify-between">
+          <h1 className="hidden md:block text-lg font-semibold">All Students</h1>
+          <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+            <TableSearch />
+            <div className="flex items-center gap-4 self-end">
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
+                <Image src="/filter.png" alt="" width={14} height={14} priority={true} />
+              </button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-lamaYellow">
+                <Image src="/sort.png" alt="" width={14} height={14} priority={true} />
+              </button>
+              {role === "admin" && (
+                <FormContainer table="student" type="create" />
+              )}
+            </div>
           </div>
         </div>
+        {/* LIST */}
+        <Table columns={columns} renderRow={renderRow} data={data} />
+        {/* PAGINATION */}
+        <Pagination page={p} count={count} />
       </div>
-      {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
-    </div>
+    </Suspense>
   );
 };
 
