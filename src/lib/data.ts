@@ -915,8 +915,61 @@ export const announcementsData = [
   },
 ];
 
+import prisma from "./prisma";
 
-// YOU SHOULD CHANGE THE DATES OF THE EVENTS TO THE CURRENT DATE TO SEE THE EVENTS ON THE CALENDAR
+export async function getClasses() {
+  try {
+    const classes = await prisma.class.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    });
+    return classes;
+  } catch (error) {
+    console.error("Error fetching classes:", error);
+    return [];
+  }
+}
+
+export async function getStudentsInClass(classId: number) {
+  try {
+    const students = await prisma.student.findMany({
+      where: {
+        classId: classId,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+    return students;
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    return [];
+  }
+}
+
+export async function getTeachersInClass(classId: number) {
+  try {
+    const teachers = await prisma.teacher.findMany({
+      where: {
+        OR: [
+          { classes: { some: { id: classId } } },
+          { supervisorId: { equals: classId } }
+        ]
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+    return teachers;
+  } catch (error) {
+    console.error("Error fetching teachers:", error);
+    return [];
+  }
+}
+
 export const calendarEvents = [
   {
     title: "Math",
